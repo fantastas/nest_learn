@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { CreateCatDto } from './create-cat.dto';
+import { Cat } from 'src/interfaces/cat.interface';
 
 @Controller('cats')
 export class CatsController {
