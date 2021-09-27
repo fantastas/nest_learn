@@ -18,12 +18,13 @@ export class UsersService {
 
   async create(@Res() res, createUserDto: CreateUserDto): Promise<User> {
     const hashedPassword = await bcrypt.hash(createUserDto.password, 12);
-
-    return await this.userModel.findOneAndUpdate(
+    const createdUser = new this.userModel(createUserDto);
+    await this.userModel.findOneAndUpdate(
       { email: createUserDto.email, password: createUserDto.password },
       { email: createUserDto.email, password: hashedPassword },
       { new: true, upsert: true },
     );
+    return createdUser.save();
   }
 
   async getAllUsers(): Promise<User[]> {
