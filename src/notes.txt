@@ -1,0 +1,155 @@
+Providers are instanciated by injectors
+Module exports are the subset of its providers 
+
+A module class can inject providers as well (e.g., for configuration purposes):
+constructor(private catsService: CatsService) {}
+
+When you want to provide a set of providers which should be available everywhere out-of-the-box 
+(e.g., helpers, database connections, etc.), make the module global with the @Global() decorator.
+@Global()
+@Module({ ..})
+
+Middleware is a function which is called before the route handler.
+Middleware functions have access to the request and response objects, 
+and the next() middleware function in the application’s request-response cycle. 
+
+
+Middleware functions can perform the following tasks:
+- execute any code.
+- make changes to the request and the response objects.
+- end the request-response cycle.
+- call the next middleware function in the stack.
+
+if the current middleware function does not end the request-response cycle,
+it must call next() to pass control to the next middleware function. 
+Otherwise, the request will be left hanging.
+
+You implement custom Nest middleware in either a function, 
+or in a class with an @Injectable() decorator. 
+The class should implement the NestMiddleware interface, 
+while the function does not have any special requirements. 
+------------------------------------------------------------
+import { Injectable, NestMiddleware } from '@nestjs/common';
+import { Request, Response, NextFunction } from 'express';
+
+@Injectable()
+export class LoggerMiddleware implements NestMiddleware {
+  use(req: Request, res: Response, next: NextFunction) {
+    console.log('Request...');
+    next();
+  }
+}
+------------------------------------------------------------
+
+There is no place for middleware in the @Module() decorator. 
+Instead, we set them up using the configure() method of the module class. 
+Modules that include middleware have to implement the NestModule interface. 
+____________________________________________________________________________>
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { LoggerMiddleware } from './common/middleware/logger.middleware';
+import { CatsModule } from './cats/cats.module';
+
+@Module({
+  imports: [CatsModule],
+})
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(LoggerMiddleware)
+      .forRoutes('cats');
+    //.forRoutes({ path: 'cats', method: RequestMethod.GET });
+
+  }
+}
+__________________________________________________________________________>
+The MiddlewareConsumer is a helper class. 
+It provides several built-in methods to manage middleware.
+The apply() method may either take a single middleware, 
+or multiple arguments to specify multiple middlewares.
+
+
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { LoggerMiddleware } from './common/middleware/logger.middleware';
+import { CatsModule } from './cats/cats.module';
+import { CatsController } from './cats/cats.controller.ts';
+
+@Module({
+  imports: [CatsModule],
+})
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(LoggerMiddleware)
+      .forRoutes(CatsController);
+  }
+}
+
+-------------------------------------------------------------------------->
+
+We can also exclude routes if you dont want to apply middleware.
+
+  .apply(LoggerMiddleware)
+  .exclude(
+    { path: 'cats', method: RequestMethod.GET },
+    { path: 'cats', method: RequestMethod.POST },
+    'cats/(.*)',
+  )
+  .forRoutes(CatsController);
+_______________________________________________________________________________>
+
+For small instance of middleware we don't need to create classes.
+We can create a Functional Middleware like this.
+looger-middleware.ts
+
+import { Request, Response, NextFunction } from 'express';
+
+export function logger(req: Request, res: Response, next: NextFunction) {
+  console.log(`Request...`);
+  next();
+};
+
+and use it in app.module
+
+consumer
+  .apply(logger)
+  .forRoutes(CatsController);
+
+Consider using the simpler functional middleware alternative any time 
+your middleware doesn't need any dependencies.
+
+Global middleware
+const app = await NestFactory.create(AppModule);
+app.use(logger);   <----
+
+exeption filters I skipped but implemeted some 
+exeption in cats controller.
+
+A pipe is a class annotated with the @Injectable() decorator. 
+Pipes should implement the PipeTransform interface.
+
+transformation: transform input data to the desired form (e.g., from string to integer)
+validation: evaluate input data and if valid, simply pass it through unchanged; otherwise, 
+throw an exception when the data is incorrect.
+
+@Get(':id')
+async findOne(@Param('id', ParseIntPipe) id: number) {
+  return this.catsService.findOne(id);
+}
+
+
+A guard is a class annotated with the @Injectable() decorator. 
+Guards should implement the CanActivate interface.
+Guards have a single responsibility. They determine whether a given request 
+will be handled by the route handler or not, depending on certain conditions 
+(like permissions, roles, ACLs, etc.) present at run-time. 
+This is often referred to as authorization.
+Guards are executed after each middleware, but before any interceptor or pipe.
+
+
+
+
+
+
+
+
+
