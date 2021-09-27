@@ -1,3 +1,4 @@
+import { GoogleStrategy } from './google/google.strategy';
 import { LoggerMiddleware } from './middleware/logger-middleware';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { AppController } from './app.controller';
@@ -9,6 +10,8 @@ import { CatsModule } from './cats/cats.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { MongooseModule } from '@nestjs/mongoose';
+import { GoogleController } from './google/google.controller';
+import { GoogleService } from './google/google.service';
 
 @Module({
   imports: [
@@ -18,8 +21,8 @@ import { MongooseModule } from '@nestjs/mongoose';
     UsersModule,
     MongooseModule.forRoot(process.env.database),
   ],
-  controllers: [AppController, CatsController],
-  providers: [AppService, CatsService],
+  controllers: [AppController, CatsController, GoogleController],
+  providers: [AppService, CatsService, GoogleService, GoogleStrategy],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
